@@ -65,6 +65,3 @@ export const uploadAPI = {
 };
 
 export default api;
-
-
-

@@ -4,11 +4,9 @@ const User = require('../models/User');
 
 const seedMontaser = async () => {
   try {
-    // Connect to MongoDB
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('Connected to MongoDB');
 
-    // Check if Montaser already exists
     const existingMontaser = await User.findOne({ role: 'montaser' });
     
     if (existingMontaser) {
@@ -17,15 +15,13 @@ const seedMontaser = async () => {
       return;
     }
 
-    // Create Montaser user with a default password
-    // Note: For production, change this password after first login
-    const defaultPassword = 'montaser123'; // Change this in production!
+    const defaultPassword = 'montaser123';
     
     const montaser = new User({
       username: 'Montaser',
       email: 'montaser@pingm.com',
       role: 'montaser',
-      password: defaultPassword // Will be hashed by User model's pre-save hook
+      password: defaultPassword
     });
 
     await montaser.save();
@@ -38,9 +34,16 @@ const seedMontaser = async () => {
 
     await mongoose.connection.close();
   } catch (error) {
-    console.error('Error seeding Montaser:', error);
+    console.error('Error seeding Montaser:', error.message);
+    if (error.message.includes('IP') || error.message.includes('whitelist') || error.message.includes('not authorized')) {
+      console.error('\n⚠️  MongoDB Atlas Connection Issue Detected');
+      console.error('To fix: Go to MongoDB Atlas → Network Access → IP Access List');
+      console.error('Add your IP or use 0.0.0.0/0 for development (wait 1-2 min for changes)');
+      console.error('Also check: MONGODB_URI, credentials, and cluster status');
+    }
     process.exit(1);
   }
 };
 
 seedMontaser();
+

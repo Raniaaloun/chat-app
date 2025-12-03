@@ -82,6 +82,3 @@ const MessageItem = ({ message, isOwn }) => {
 };
 
 export default MessageItem;
-
-
-

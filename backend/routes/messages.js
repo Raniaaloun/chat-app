@@ -104,6 +104,3 @@ router.patch('/:userId/read', auth, async (req, res) => {
 });
 
 module.exports = router;
-
-
-

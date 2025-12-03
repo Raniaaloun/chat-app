@@ -195,6 +195,3 @@ const MessageInput = ({ onSendMessage, selectedUser }) => {
 };
 
 export default MessageInput;
-
-
-

@@ -118,26 +118,92 @@ The app will open at `http://localhost:3000`
 ## Deployment
 
 ### Backend (Render)
-1. Push your code to GitHub
-2. Connect your repository to Render
-3. Set the following environment variables:
-   - `MONGODB_URI`
-   - `JWT_SECRET`
-   - `CLOUDINARY_CLOUD_NAME`
-   - `CLOUDINARY_API_KEY`
-   - `CLOUDINARY_API_SECRET`
-   - `FRONTEND_URL` (your frontend URL)
-4. Set build command: `cd backend && npm install`
-5. Set start command: `cd backend && npm start`
+
+1. **Push your code to GitHub** (already done if you followed the setup)
+
+2. **Create a new Web Service on Render:**
+   - Go to [Render Dashboard](https://dashboard.render.com)
+   - Click "New +" → "Web Service"
+   - Connect your GitHub account and select the `chat-app` repository
+   - Choose the repository and click "Connect"
+
+3. **Configure the service:**
+   - **Name**: `pingm-backend` (or any name you prefer)
+   - **Region**: Choose closest to your users
+   - **Branch**: `main`
+   - **Root Directory**: Leave empty (we'll set commands to use `backend` folder)
+   - **Runtime**: `Node`
+   - **Build Command**: `cd backend && npm install`
+   - **Start Command**: `cd backend && npm start`
+
+4. **Set Environment Variables:**
+   - In the Render dashboard, go to your service
+   - Click on "Environment" tab
+   - Click "Add Environment Variable" for each of the following:
+   
+   | Variable Name | Value | Description |
+   |-------------|-------|-------------|
+   | `MONGODB_URI` | `mongodb+srv://...` | Your MongoDB Atlas connection string |
+   | `JWT_SECRET` | `your-secret-key-here` | A random secret string (use a strong password generator) |
+   | `CLOUDINARY_CLOUD_NAME` | `your-cloud-name` | From Cloudinary dashboard |
+   | `CLOUDINARY_API_KEY` | `your-api-key` | From Cloudinary dashboard |
+   | `CLOUDINARY_API_SECRET` | `your-api-secret` | From Cloudinary dashboard |
+   | `FRONTEND_URL` | `https://your-frontend.vercel.app` | Your Vercel frontend URL (set after deploying frontend) |
+   | `PORT` | `5000` | Optional, Render sets this automatically |
+
+5. **Deploy:**
+   - Click "Create Web Service"
+   - Render will build and deploy your backend
+   - Note your backend URL (e.g., `https://pingm-backend.onrender.com`)
 
 ### Frontend (Vercel)
-1. Push your code to GitHub
-2. Connect your repository to Vercel
-3. Set root directory to `frontend`
-4. Set environment variables:
-   - `REACT_APP_API_URL` (your backend URL + /api)
-   - `REACT_APP_SOCKET_URL` (your backend URL)
-5. Deploy
+
+1. **Create a new project on Vercel:**
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
+   - Click "Add New..." → "Project"
+   - Import your GitHub repository `Raniaaloun/chat-app`
+
+2. **Configure the project:**
+   - **Framework Preset**: Create React App
+   - **Root Directory**: `frontend` (important!)
+   - **Build Command**: `npm run build` (default)
+   - **Output Directory**: `build` (default)
+   - **Install Command**: `npm install` (default)
+
+3. **Set Environment Variables:**
+   - Before deploying, click "Environment Variables"
+   - Add the following variables:
+   
+   | Variable Name | Value | Description |
+   |-------------|-------|-------------|
+   | `REACT_APP_API_URL` | `https://your-backend.onrender.com/api` | Your Render backend URL + `/api` |
+   | `REACT_APP_SOCKET_URL` | `https://your-backend.onrender.com` | Your Render backend URL (without `/api`) |
+
+   **Important:** 
+   - Replace `your-backend.onrender.com` with your actual Render backend URL
+   - These must start with `REACT_APP_` to be accessible in your React app
+   - After adding variables, you may need to redeploy for them to take effect
+
+4. **Deploy:**
+   - Click "Deploy"
+   - Vercel will build and deploy your frontend
+   - Note your frontend URL (e.g., `https://chat-app.vercel.app`)
+
+5. **Update Backend Environment Variable:**
+   - Go back to Render dashboard
+   - Update the `FRONTEND_URL` environment variable with your Vercel frontend URL
+   - This allows CORS to work properly
+   - Redeploy the backend service
+
+### Important Notes:
+
+- **Order of Deployment**: Deploy backend first, then frontend (so you can use the backend URL in frontend env vars)
+- **CORS**: Make sure `FRONTEND_URL` in backend matches your Vercel URL exactly
+- **Environment Variables**: Never commit `.env` files to GitHub - they're already in `.gitignore`
+- **Seeding Database**: After backend deployment, you may need to run the seed script. You can do this by:
+  - SSH into your Render service (if available), or
+  - Create a temporary endpoint to run the seed, or
+  - Run it locally pointing to your production MongoDB URI
 
 ## Usage
 
