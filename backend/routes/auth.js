@@ -1,6 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Message = require('../models/Message');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
@@ -117,19 +118,68 @@ router.get('/me', auth, async (req, res) => {
 // Get all users for chat (normal users can only see Montaser, Montaser can see everyone)
 router.get('/users', auth, async (req, res) => {
   try {
-    let query = {};
-    
+    // Normal users: only see Montaser (no special ordering needed)
     if (req.user.role === 'normal') {
-      // Normal users can only see Montaser
-      query = { role: 'montaser' };
-    } else {
-      // Montaser can see all users except themselves
-      query = { _id: { $ne: req.user._id } };
+      const users = await User.find({ role: 'montaser' }).select('username role createdAt');
+      return res.json({ users });
     }
 
-    const users = await User.find(query).select('username role createdAt');
+    // Montaser (admin): see everyone else, ordered by most recent conversation first
+    const currentUserId = req.user._id;
 
-    res.json({ users });
+    // Get all users except current admin
+    const users = await User.find({ _id: { $ne: currentUserId } }).select('username role createdAt');
+
+    // Build a map of userId -> lastMessageAt based on messages with Montaser
+    const lastMessages = await Message.aggregate([
+      {
+        $match: {
+          $or: [
+            { sender: currentUserId },
+            { receiver: currentUserId }
+          ]
+        }
+      },
+      {
+        $project: {
+          createdAt: 1,
+          otherUser: {
+            $cond: [
+              { $eq: ['$sender', currentUserId] },
+              '$receiver',
+              '$sender'
+            ]
+          }
+        }
+      },
+      {
+        $group: {
+          _id: '$otherUser',
+          lastMessageAt: { $max: '$createdAt' }
+        }
+      }
+    ]);
+
+    const lastMessageMap = {};
+    lastMessages.forEach((entry) => {
+      lastMessageMap[String(entry._id)] = entry.lastMessageAt;
+    });
+
+    // Sort users so that the ones with the most recent conversations appear first.
+    // Users with no conversation yet will appear at the bottom.
+    const sortedUsers = users.sort((a, b) => {
+      const aLast = lastMessageMap[String(a._id)];
+      const bLast = lastMessageMap[String(b._id)];
+
+      if (aLast && bLast) {
+        return bLast - aLast;
+      }
+      if (aLast) return -1;
+      if (bLast) return 1;
+      return 0;
+    });
+
+    res.json({ users: sortedUsers });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Server error' });
