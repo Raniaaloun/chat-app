@@ -92,7 +92,8 @@ router.patch('/:userId/read', auth, async (req, res) => {
         read: false
       },
       {
-        read: true
+        read: true,
+        readAt: new Date()
       }
     );
 

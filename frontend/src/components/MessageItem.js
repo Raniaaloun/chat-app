@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiImage, FiVideo, FiMic } from 'react-icons/fi';
+import { FiMic, FiCheck } from 'react-icons/fi';
 import './MessageItem.css';
 
 const MessageItem = ({ message, isOwn }) => {
@@ -11,7 +11,7 @@ const MessageItem = ({ message, isOwn }) => {
       case 'image':
         return (
           <div className="message-media">
-            <img src={message.content} alt="Shared image" className="message-image" />
+            <img src={message.content} alt="Shared content" className="message-image" />
           </div>
         );
 
@@ -66,6 +66,38 @@ const MessageItem = ({ message, isOwn }) => {
     }
   };
 
+  const renderStatusIcon = () => {
+    if (!isOwn) return null; // Only show status for own messages
+    
+    // Handle backward compatibility - default to false if field doesn't exist
+    const isRead = message.read === true;
+    const isDelivered = message.delivered === true;
+    
+    if (isRead) {
+      // Two green checks = Read
+      return (
+        <div className="message-status read">
+          <FiCheck className="status-icon" />
+          <FiCheck className="status-icon" />
+        </div>
+      );
+    } else if (isDelivered) {
+      // One blue check = Delivered
+      return (
+        <div className="message-status delivered">
+          <FiCheck className="status-icon" />
+        </div>
+      );
+    } else {
+      // One grey check = Sent
+      return (
+        <div className="message-status sent">
+          <FiCheck className="status-icon" />
+        </div>
+      );
+    }
+  };
+
   return (
     <div className={`message-item ${isOwn ? 'own' : 'other'}`}>
       <div className="message-content">
@@ -74,7 +106,10 @@ const MessageItem = ({ message, isOwn }) => {
         )}
         <div className="message-bubble">
           {renderMessageContent()}
-          <div className="message-time">{formatTime(message.createdAt)}</div>
+          <div className="message-footer">
+            <div className="message-time">{formatTime(message.createdAt)}</div>
+            {renderStatusIcon()}
+          </div>
         </div>
       </div>
     </div>

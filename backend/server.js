@@ -107,11 +107,34 @@ io.on('connection', (socket) => {
         .populate('sender', 'username role')
         .populate('receiver', 'username role');
 
-      // Emit to receiver
-      io.to(`user_${receiverId}`).emit('receive_message', populatedMessage);
-      
-      // Emit back to sender for confirmation
-      socket.emit('message_sent', populatedMessage);
+      // Check if receiver is online (in their room)
+      const receiverSockets = await io.in(`user_${receiverId}`).fetchSockets();
+      if (receiverSockets.length > 0) {
+        // Receiver is online, mark as delivered
+        message.delivered = true;
+        await message.save();
+        
+        // Re-populate message with updated delivered status
+        const updatedMessage = await Message.findById(message._id)
+          .populate('sender', 'username role')
+          .populate('receiver', 'username role');
+        
+        // Emit to receiver
+        io.to(`user_${receiverId}`).emit('receive_message', updatedMessage);
+        
+        // Emit delivery status to sender
+        socket.emit('message_delivered', {
+          messageId: message._id,
+          delivered: true
+        });
+        
+        // Emit back to sender for confirmation with updated status
+        socket.emit('message_sent', updatedMessage);
+      } else {
+        // Receiver is offline, emit without delivered status
+        io.to(`user_${receiverId}`).emit('receive_message', populatedMessage);
+        socket.emit('message_sent', populatedMessage);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       socket.emit('error', { message: 'Failed to send message' });
@@ -126,6 +149,45 @@ io.on('connection', (socket) => {
       username: socket.user.username,
       isTyping
     });
+  });
+
+  // Handle marking messages as read
+  socket.on('mark_as_read', async (data) => {
+    try {
+      const { senderId } = data;
+      const currentUserId = socket.userId;
+
+      // Mark all unread messages from sender as read
+      const result = await Message.updateMany(
+        {
+          sender: senderId,
+          receiver: currentUserId,
+          read: false
+        },
+        {
+          read: true,
+          readAt: new Date()
+        }
+      );
+
+      if (result.modifiedCount > 0) {
+        // Get the updated messages to send back
+        const updatedMessages = await Message.find({
+          sender: senderId,
+          receiver: currentUserId,
+          read: true
+        }).select('_id');
+
+        // Emit read status to sender
+        io.to(`user_${senderId}`).emit('messages_read', {
+          messageIds: updatedMessages.map(m => m._id),
+          readBy: currentUserId
+        });
+      }
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+      socket.emit('error', { message: 'Failed to mark messages as read' });
+    }
   });
 
   // Handle disconnect

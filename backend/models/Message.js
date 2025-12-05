@@ -30,9 +30,17 @@ const messageSchema = new mongoose.Schema({
     default: Date.now,
     index: true
   },
+  delivered: {
+    type: Boolean,
+    default: false
+  },
   read: {
     type: Boolean,
     default: false
+  },
+  readAt: {
+    type: Date,
+    default: null
   }
 });
 

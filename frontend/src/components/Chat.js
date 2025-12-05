@@ -25,12 +25,49 @@ const Chat = ({ user, onLogout }) => {
           selectedUser &&
           (message.sender._id === selectedUser._id || message.receiver._id === selectedUser._id)
         ) {
-          setMessages((prev) => [...prev, message]);
+          setMessages((prev) => {
+            // Check if message already exists
+            const exists = prev.some(m => m._id === message._id);
+            if (exists) {
+              return prev.map(m => m._id === message._id ? message : m);
+            }
+            return [...prev, message];
+          });
+          
+          // Mark as read if viewing the conversation
+          if (message.sender._id === selectedUser._id) {
+            socketRef.current.emit('mark_as_read', { senderId: selectedUser._id });
+          }
         }
       });
 
       socketRef.current.on('message_sent', (message) => {
-        setMessages((prev) => [...prev, message]);
+        setMessages((prev) => {
+          // Check if message already exists
+          const exists = prev.some(m => m._id === message._id);
+          if (exists) {
+            return prev.map(m => m._id === message._id ? message : m);
+          }
+          return [...prev, message];
+        });
+      });
+
+      // Handle delivery status updates
+      socketRef.current.on('message_delivered', (data) => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m._id === data.messageId ? { ...m, delivered: true } : m
+          )
+        );
+      });
+
+      // Handle read status updates
+      socketRef.current.on('messages_read', (data) => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            data.messageIds.includes(m._id) ? { ...m, read: true } : m
+          )
+        );
       });
 
       socketRef.current.on('error', (error) => {
@@ -76,8 +113,10 @@ const Chat = ({ user, onLogout }) => {
       const response = await messagesAPI.getMessages(userId);
       setMessages(response.data.messages);
       
-      // Mark messages as read
-      await messagesAPI.markAsRead(userId);
+      // Mark messages as read via socket
+      if (socketRef.current) {
+        socketRef.current.emit('mark_as_read', { senderId: userId });
+      }
     } catch (error) {
       console.error('Error loading messages:', error);
     }

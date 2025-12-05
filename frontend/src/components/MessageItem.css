@@ -106,15 +106,52 @@
   color: rgba(255, 255, 255, 0.8);
 }
 
-.message-time {
-  font-size: 11px;
+.message-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
   margin-top: 6px;
-  opacity: 0.7;
-  text-align: right;
 }
 
-.message-item.other .message-time {
-  text-align: left;
+.message-item.other .message-footer {
+  justify-content: flex-start;
+}
+
+.message-time {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.message-status {
+  display: flex;
+  align-items: center;
+  gap: 0px;
+  margin-left: 4px;
+}
+
+.message-status.read .status-icon:not(:last-child) {
+  margin-right: -4px;
+}
+
+.message-status .status-icon {
+  font-size: 14px;
+}
+
+.message-status.sent .status-icon {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.message-status.delivered .status-icon {
+  color: #4fc3f7;
+}
+
+.message-status.read .status-icon {
+  color: #4caf50;
+}
+
+.message-item.other .message-status {
+  display: none;
 }
 
 /* Mobile responsiveness */
